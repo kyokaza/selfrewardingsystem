@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Personal Reward System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const storageKey = "rewardSystemData";
+
+        let data = {
+            points: 0,
+            sections: [
+                {
+                    name: "Milestone 1: Daily Tasks",
+                    tasks: [
+                        { name: "Make your bed", points: 5, completedDate: null },
+                        { name: "Drink 8 glasses of water", points: 5, completedDate: null },
+                        { name: "Tidy up one room", points: 10, completedDate: null },
+                        { name: "Complete daily chores", points: 15, completedDate: null },
+                        { name: "Take a 30-minute walk", points: 20, completedDate: null },
+                        { name: "Spend 30 minutes on a hobby", points: 15, completedDate: null }
+                    ]
+                }
+            ]
+        };
+
+        function getCurrentDate() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function loadData() {
+            const savedData = localStorage.getItem(storageKey);
+            if (savedData) {
+                data = JSON.parse(savedData);
+            }
+            render();
+        }
+
+        function saveData() {
+            localStorage.setItem(storageKey, JSON.stringify(data));
+        }
+
+        function updatePoints(amount) {
+            data.points += amount;
+            saveData();
+            updateProgressBar();
+            render();
+        }
+
+        function markTaskCompleted(sectionIndex, taskIndex) {
+            const task = data.sections[sectionIndex].tasks[taskIndex];
+            if (!task.completedDate || task.completedDate !== getCurrentDate()) {
+                task.completedDate = getCurrentDate();
+                updatePoints(task.points);
+            } else {
+                alert("Task already completed today!");
+            }
+        }
+
+        function redeemReward(cost) {
+            if (data.points >= cost) {
+                data.points -= cost;
+                saveData();
+                alert("Reward redeemed!");
+                updateProgressBar();
+                render();
+            } else {
+                alert("Not enough points to redeem this reward!");
+            }
+        }
+
+        function addSection() {
+            const sectionName = prompt("Enter the name of the new section:");
+            if (sectionName) {
+                data.sections.push({ name: sectionName, tasks: [] });
+                saveData();
+                render();
+            }
+        }
+
+        function addTask(sectionIndex) {
+            const taskName = prompt("Enter the task name:");
+            const taskPoints = parseInt(prompt("Enter the points for this task:"), 10);
+            if (taskName && taskPoints) {
+                data.sections[sectionIndex].tasks.push({ name: taskName, points: taskPoints, completedDate: null });
+                saveData();
+                render();
+            }
+        }
+
+        function updateProgressBar() {
+            const maxPoints = 500; // Adjust to your highest reward requirement
+            const progress = Math.min((data.points / maxPoints) * 100, 100); // Cap at 100%
+            const progressBar = document.getElementById('progress-bar-inner');
+            progressBar.style.width = `${progress}%`;
+            progressBar.textContent = `${Math.round(progress)}%`;
+        }
+
+        function render() {
+            document.getElementById('points-display').textContent = data.points;
+            updateProgressBar();
+
+            const sectionsContainer = document.getElementById('sections-container');
+            sectionsContainer.innerHTML = '';
+
+            data.sections.forEach((section, sectionIndex) => {
+                const sectionCard = document.createElement('div');
+                sectionCard.className = 'card mb-3';
+
+                const sectionHeader = document.createElement('div');
+                sectionHeader.className = 'card-header d-flex justify-content-between align-items-center';
+
+                const sectionTitle = document.createElement('h5');
+                sectionTitle.className = 'card-title';
+                sectionTitle.textContent = section.name;
+
+                const addTaskButton = document.createElement('button');
+                addTaskButton.className = 'btn btn-sm btn-primary';
+                addTaskButton.textContent = "Add Task";
+                addTaskButton.onclick = () => addTask(sectionIndex);
+
+                sectionHeader.appendChild(sectionTitle);
+                sectionHeader.appendChild(addTaskButton);
+                sectionCard.appendChild(sectionHeader);
+
+                const taskList = document.createElement('ul');
+                taskList.className = 'list-group list-group-flush';
+
+                section.tasks.forEach((task, taskIndex) => {
+                    const taskItem = document.createElement('li');
+                    taskItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    if (task.completedDate === getCurrentDate()) {
+                        taskItem.classList.add('bg-warning');
+                    }
+
+                    const taskName = document.createElement('span');
+                    taskName.textContent = `${task.name} (+${task.points} points)`;
+
+                    const button = document.createElement('button');
+                    button.className = 'btn btn-sm ' + (task.completedDate === getCurrentDate() ? 'btn-secondary' : 'btn-success');
+                    button.textContent = task.completedDate === getCurrentDate() ? 'Completed' : 'Complete';
+                    button.disabled = task.completedDate === getCurrentDate();
+                    button.onclick = () => markTaskCompleted(sectionIndex, taskIndex);
+
+                    taskItem.appendChild(taskName);
+                    taskItem.appendChild(button);
+                    taskList.appendChild(taskItem);
+                });
+
+                sectionCard.appendChild(taskList);
+                sectionsContainer.appendChild(sectionCard);
+            });
+        }
+
+        window.onload = function () {
+            loadData();
+            document.getElementById('add-section-button').onclick = addSection;
+        };
+    </script>
+</head>
+<body class="bg-light">
+
+<header class="bg-success text-white py-3">
+    <div class="container text-center">
+        <h1>My Personal Reward System</h1>
+        <p>Track your points, complete tasks, and unlock rewards!</p>
+        <h2>Total Points: <span id="points-display">0</span></h2>
+    </div>
+</header>
+
+<div class="container my-4">
+    <div class="card mb-4">
+        <div class="card-header">Progress</div>
+        <div class="card-body">
+            <div class="progress">
+                <div class="progress-bar bg-success progress-bar-striped" role="progressbar" style="width: 0%" id="progress-bar-inner">0%</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-4 text-center">
+        <button class="btn btn-primary" id="add-section-button">Add Section</button>
+    </div>
+
+    <div id="sections-container"></div>
+
+    <div class="card">
+        <div class="card-header">Rewards</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Fancy Coffee</h5>
+                            <p class="card-text">50 Points</p>
+                            <button class="btn btn-primary" onclick="redeemReward(50)">Redeem</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Relaxing Bath</h5>
+                            <p class="card-text">100 Points</p>
+                            <button class="btn btn-primary" onclick="redeemReward(100)">Redeem</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Buy a Book</h5>
+                            <p class="card-text">200 Points</p>
+                            <button class="btn btn-primary" onclick="redeemReward(200)">Redeem</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Nice Dinner</h5>
+                            <p class="card-text">300 Points</p>
+                            <button class="btn btn-primary" onclick="redeemReward(300)">Redeem</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Weekend Getaway</h5>
+                            <p class="card-text">500 Points</p>
+                            <button class="btn btn-primary" onclick="redeemReward(500)">Redeem</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="bg-success text-white py-3 text-center">
+    <p>Stay consistent, track your progress, and reward yourself for your successes!</p>
+</footer>
+
+</body>
+</html>
